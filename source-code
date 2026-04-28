@@ -1,0 +1,183 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <math.h>
+/* Displays the current cart contents */
+void cart_display(int cartQuantity[4], float prices[4]) {
+    float total = 0.0;
+    printf("\n------ CURRENT CART ------\n");
+    for (int i = 0; i < 4; i++) {
+        if (cartQuantity[i] > 0) {
+            const char* itemNames[4] = {"Chocolate Pudding", "Tiramisu", "Green Matcha", "Cappuccino"};
+            printf("%d. %-18s x %d  RM %.2f\n", i + 1, itemNames[i], cartQuantity[i], cartQuantity[i] * prices[i]);
+            total += cartQuantity[i] * prices[i];
+        }
+    }
+    printf("-------------------------\n");
+    printf("Current Subtotal (no discount): RM %.2f\n", total);
+    printf("-------------------------\n");
+}
+
+/* Review and change the cart */
+void cart_change(int cartQuantity[4], float prices[4]) {
+    int choice, item;
+    printf("1. View / Edit Cart\n2. Proceed to Payment\nEnter your choice(1-2): ");
+    int user_choice;
+    scanf("%d", &user_choice);
+
+    if (user_choice != 1) return;
+
+    do {
+        printf("\n--- Cart Menu ---\n");
+        printf("1. Remove item\n2. Change quantity\n3. Review cart\n0. Back\nEnter choice: ");
+        scanf("%d", &choice);
+
+        switch(choice) {
+            case 1: // Remove item
+                printf("Enter item number to remove (1–4): ");
+                scanf("%d", &item);
+                if (item >= 1 && item <= 4) {
+                    cartQuantity[item - 1] = 0;
+                    printf("Item removed from cart.\n");
+                } else {
+                    printf("Invalid item number.\n");
+                }
+                break;
+
+            case 2: // Change quantity
+                printf("Enter item number to change quantity (1–4): ");
+                scanf("%d", &item);
+                if (item >= 1 && item <= 4 && cartQuantity[item - 1] > 0) {
+                    int quantity;
+                    do {
+                        printf("Enter new quantity: ");
+                        scanf("%d", &quantity);
+                        if (quantity <= 0)
+                            printf("Quantity must be greater than zero.\n");
+                    } while (quantity <= 0);
+                    cartQuantity[item - 1] = quantity;
+                    printf("Cart updated successfully!\n");
+                } else {
+                    printf("Invalid item number or item not in cart.\n");
+                }
+                break;
+
+            case 3:// Review cart
+                cart_display(cartQuantity, prices);
+                break;
+
+            case 0: // Back
+                break;
+
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    } while(choice != 0);
+}
+
+/* Displays a detailed bill breakdown */
+float bill_display(float originalSubtotal, float discount) {
+    float afterDiscount = originalSubtotal - discount;
+    float smallOrderFee = (afterDiscount < 20.0) * 3.5;
+    float serviceFee = 0.1 * (smallOrderFee + afterDiscount);
+    float finalTotal = (afterDiscount + smallOrderFee) * 1.10;
+    printf("\n------ BILL ------\n");
+    printf("Subtotal (before discount): RM %.2f\n", originalSubtotal);
+    printf("Discount Applied:           -RM %.2f\n", discount);
+    printf("Subtotal after discount:    RM %.2f\n", afterDiscount);
+    if (smallOrderFee > 0)
+        printf("Small Order Fee (< RM20):   RM %.2f\n", smallOrderFee);
+    printf("Service Fee (10%%):          RM %.2f\n", serviceFee);
+    printf("----------------------------\n");
+    printf("Total:                               RM %.2f\n", finalTotal);
+    printf("Total Payable(rounded):              RM %.2f\n", round(finalTotal*10) / 10.0);
+    printf("----------------------------\n");
+    return round(finalTotal*10) / 10.0;
+}
+int main(void) {
+    int user_option;
+    float dailyRevenue = 0.0;
+    float totalDiscountGiven = 0.0;
+    int totalOrders = 0;
+    float discountRate = 0.20;
+    float prices[4] = {12.90, 14.90, 14.90, 13.90};
+
+    srand(time(NULL)); //use system time to get random number
+    int discountedItem = rand() % 4 + 1; // 1–4, 20% off
+
+    printf("Welcome to Tounuage Restaurant POS System\n");
+
+    while (1) {
+        printf("\n1. Make a new order\n2. End Day & View Summary\n3. Exit\nEnter your choice: ");
+        scanf("%d", &user_option);
+
+        if (user_option == 1) {
+            int cartQuantity[4] = {0};
+            int item_choice, quantity;
+
+            printf("\n---- MENU ----\n");
+            char itemNames[4][20] = { "Chocolate Pudding", "Tiramisu", "Green Matcha", "Cappuccino" };
+            for (int i = 0; i < 4; i++) {
+                printf("%d. %-18s RM %.2f", i + 1, itemNames[i], prices[i]);
+                if (discountedItem == i + 1) printf("  <-- TODAY'S SPECIAL (20%% OFF)");
+                printf("\n");
+            }
+            printf("0. Cart & Checkout Menu\n");
+
+            while (1) {
+                printf("\nSelect item (0 to finish): ");
+                scanf("%d", &item_choice);
+                if (item_choice == 0) {
+                    cart_change(cartQuantity, prices);
+                    break;
+                }
+                if (item_choice >= 1 && item_choice <= 4) {
+                    do {
+                        printf("Enter quantity: ");
+                        scanf("%d", &quantity);
+                        if (quantity <= 0)
+                            printf("Quantity must be greater than zero.\n");
+                    } while (quantity <= 0);
+                    cartQuantity[item_choice - 1] += quantity;
+                } else {
+                    printf("Invalid choice!\n");
+                }
+            }
+
+            float originalSubtotal = 0.0;
+            for (int i = 0; i < 4; i++) {
+                originalSubtotal += cartQuantity[i] * prices[i];
+            }
+
+            float orderDiscount = cartQuantity[discountedItem - 1] * prices[discountedItem - 1] * discountRate;
+            dailyRevenue += bill_display(originalSubtotal, orderDiscount);
+            totalDiscountGiven += orderDiscount;
+            totalOrders++;
+
+            printf("Order completed successfully!\n");
+        }
+        else if (user_option == 2) {
+            printf("\n===== DAILY SUMMARY =====\n");
+            printf("Total Orders: %d\n", totalOrders);
+            printf("Total Revenue: RM %.2f\n", dailyRevenue);
+            printf("Total Discounts Given: RM %.2f\n", totalDiscountGiven);
+            if (totalOrders > 0)
+                printf("Average Order Value: RM %.2f\n", dailyRevenue / totalOrders);
+            printf("=========================\n");
+
+            dailyRevenue = 0.0;
+            totalDiscountGiven = 0.0;
+            totalOrders = 0;
+            printf(">> Daily records have been reset for a new day.\n");
+        }
+        else if (user_option == 3) {
+            printf("Thank you for using Tounuage Restaurant POS System!\n");
+            break;
+        }
+        else {
+            printf("Invalid option. Please try again.\n");
+        }
+    }
+    return 0;
+}
+    
